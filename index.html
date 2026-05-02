@@ -465,7 +465,7 @@ textarea{ min-height: 70px; resize: vertical; font-size: 14px; }
    DRUG LOG
 ══════════════════════════════════════════ */
 .drug-inp-row{
-  display:grid; grid-template-columns:1fr 80px 66px auto;
+  display:grid; grid-template-columns:1fr 110px 66px auto;
   gap:7px; align-items:end; margin-bottom:9px;
 }
 .de{
@@ -667,6 +667,7 @@ textarea{ min-height: 70px; resize: vertical; font-size: 14px; }
 ══════════════════════════════════════════ */
 .bp-row{ margin-bottom:11px; }
 .bp-inner{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.fr4{ grid-template-columns:repeat(4,1fr); gap:8px; }
 
 /* ══════════════════════════════════════════
    ANIMATIONS & UTILITIES
@@ -689,11 +690,12 @@ textarea{ min-height: 70px; resize: vertical; font-size: 14px; }
 ══════════════════════════════════════════ */
 @media(max-width:520px){
   .fr{ grid-template-columns:1fr; }
+  .fr4{ grid-template-columns:1fr 1fr; }
   .fr3{ grid-template-columns:1fr 1fr; }
   .wheels-row{ grid-template-columns:repeat(4,1fr); gap:5px; }
   .dials-grid{ grid-template-columns:repeat(4,1fr); gap:3px; }
   .wheel-item.sel{ font-size:21px; }
-  .drug-inp-row{ grid-template-columns:1fr 72px auto; }
+  .drug-inp-row{ grid-template-columns:1fr 95px auto; }
   .drug-inp-row .rt-s{ display:none; }
   .sw-elapsed{ font-size:42px; }
   .sp-label{ display:none; }
@@ -756,17 +758,29 @@ textarea{ min-height: 70px; resize: vertical; font-size: 14px; }
     <div class="fg"><label>Procedure / Indication</label>
       <input type="text" id="p_proc" placeholder="e.g. Shoulder reduction, Cardioversion, Fracture manipulation"></div>
     <div class="fr">
-      <div class="fg"><label>Clinician</label><input type="text" id="p_doc" placeholder="Name &amp; grade"></div>
+      <div class="fg"><label>Sedationist</label><input type="text" id="p_doc" placeholder="Name &amp; grade"></div>
       <div class="fg"><label>Location</label>
         <select id="p_loc"><option>Resus Bay</option><option>Majors</option><option>Theatre</option><option>Procedure Room</option><option>ICU</option><option>Other</option></select>
       </div>
+    </div>
+    <div class="fg"><label>Procedure Done By</label>
+      <input type="text" id="p_role" placeholder="Name &amp; grade of operator(s)">
     </div>
     <div class="fr">
       <div class="fg"><label>Weight (kg)</label>
         <input type="hidden" id="p_wt" value="70">
         <div id="wc_p_wt"></div>
       </div>
-      <div class="fg"><label>Allergies</label><input type="text" id="p_allerg" placeholder="NKDA / specify"></div>
+      <div class="fg"><label>Allergies</label>
+        <select id="p_allerg">
+          <option value="NKDA">NKDA — No Known Drug Allergies</option>
+          <option value="Penicillin">Penicillin</option>
+          <option value="NSAIDs">NSAIDs / Aspirin</option>
+          <option value="Latex">Latex</option>
+          <option value="Iodine/Contrast">Iodine / Contrast</option>
+          <option value="Other">Other (specify in notes)</option>
+        </select>
+      </div>
     </div>
   </div>
   <div class="nav"><button class="btn-nxt" onclick="gotoStep(2)">Next: Assessment →</button></div>
@@ -826,13 +840,22 @@ textarea{ min-height: 70px; resize: vertical; font-size: 14px; }
     <div class="fg"><label>PMHx / Medications</label>
       <textarea id="a_hx" placeholder="Relevant history, regular medications, anticoagulants…"></textarea></div>
     <div class="fg"><label>Baseline Observations</label>
-      <div class="fr3">
+      <div class="fr fr4">
         <div>
           <label style="text-transform:none;font-size:11px;">HR (bpm)</label>
           <input type="hidden" id="a_hr" value="60">
           <div id="wc_a_hr"></div>
         </div>
-        <div><label style="text-transform:none;font-size:11px;">BP (mmHg)</label><input type="text" id="a_bp" placeholder="128/76"></div>
+        <div>
+          <label style="text-transform:none;font-size:11px;">Sys BP</label>
+          <input type="hidden" id="a_bps" value="120">
+          <div id="wc_a_bps"></div>
+        </div>
+        <div>
+          <label style="text-transform:none;font-size:11px;">Dia BP</label>
+          <input type="hidden" id="a_bpd" value="80">
+          <div id="wc_a_bpd"></div>
+        </div>
         <div>
           <label style="text-transform:none;font-size:11px;">SpO₂ (%)</label>
           <input type="hidden" id="a_spo2" value="99">
@@ -909,7 +932,10 @@ textarea{ min-height: 70px; resize: vertical; font-size: 14px; }
         <option>Flumazenil</option><option>Naloxone</option><option>Atropine</option>
         <option>Other (see notes)</option>
       </select>
-      <input type="text" id="d_dose" placeholder="Dose" style="min-width:0;">
+      <div style="position:relative;min-width:0;">
+        <input type="number" id="d_dose" inputmode="decimal" min="0" step="any" placeholder="Dose" style="width:100%;padding-right:38px;">
+        <span id="d_unit_lbl" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;color:var(--forest-m);pointer-events:none;"></span>
+      </div>
       <select id="d_route" class="rt-s"><option>IV</option><option>IM</option><option>IN</option><option>PO</option><option>INH</option></select>
       <button class="log-drug-btn" onclick="logDrug()">Log</button>
     </div>
@@ -921,6 +947,7 @@ textarea{ min-height: 70px; resize: vertical; font-size: 14px; }
     <div class="sec-ttl">Record Observations</div>
     <div class="dials-panel">
       <div class="dials-grid" id="dialsGrid"></div>
+      <p style="text-align:center;font-size:10px;color:rgba(255,255,255,0.32);margin-top:8px;letter-spacing:0.4px;font-family:var(--sans);">↑ ↓ Slide up / down on each dial to adjust</p>
     </div>
 
     <!-- BP -->
@@ -929,11 +956,13 @@ textarea{ min-height: 70px; resize: vertical; font-size: 14px; }
       <div class="bp-inner">
         <div>
           <label style="text-transform:none;font-size:10px;color:var(--ink-l);">Systolic</label>
-          <input type="number" id="v_bps" placeholder="120" min="40" max="250" style="font-size:18px;font-weight:700;text-align:center;">
+          <input type="hidden" id="v_bps" value="120">
+          <div id="wc_v_bps"></div>
         </div>
         <div>
           <label style="text-transform:none;font-size:10px;color:var(--ink-l);">Diastolic</label>
-          <input type="number" id="v_bpd" placeholder="80" min="20" max="150" style="font-size:18px;font-weight:700;text-align:center;">
+          <input type="hidden" id="v_bpd" value="80">
+          <div id="wc_v_bpd"></div>
         </div>
       </div>
     </div>
@@ -955,7 +984,7 @@ textarea{ min-height: 70px; resize: vertical; font-size: 14px; }
     <div style="margin-top:11px;overflow-x:auto;">
       <table class="vt">
         <thead><tr>
-          <th>Time</th><th>+Min</th><th>HR</th><th>BP</th><th>SpO₂</th><th>RR</th><th>ETCO₂</th><th>AVPU</th><th></th>
+          <th>Time</th><th>+Min</th><th>HR</th><th>BP</th><th>SpO₂</th><th>RR</th><th>ETCO₂<br>kPa</th><th>AVPU</th><th></th>
         </tr></thead>
         <tbody id="vtbody"><tr><td colspan="9" class="empty-msg">No observations yet</td></tr></tbody>
       </table>
@@ -1039,6 +1068,11 @@ let swSec=0,swRun=false,swIval=null,swStartT=null,swStopT=null;
 let obsCd=60, obsDue=false;
 const dialVals={hr:80,spo2:98,rr:14,etco2:35};
 let repeatIval=null;
+const DRUG_UNITS={
+  'Midazolam':'mg','Fentanyl':'mcg','Ketamine':'mg',
+  'Propofol':'mg','Morphine':'mg','Alfentanil':'mcg',
+  'Dexmedetomidine':'mcg','Flumazenil':'mg','Naloxone':'mcg','Atropine':'mg'
+};
 
 // ═════════════ NAVIGATION ═════════════
 function gotoStep(n){
@@ -1148,7 +1182,7 @@ const DDEFS=[
   {id:'hr',   label:'Heart Rate', unit:'bpm',  min:30,  max:200, init:80,  color:'#4ade80'},
   {id:'spo2', label:'SpO₂',      unit:'%',    min:70,  max:100, init:98,  color:'#38bdf8'},
   {id:'rr',   label:'Resp Rate', unit:'/min', min:4,   max:40,  init:14,  color:'#fb923c'},
-  {id:'etco2',label:'ETCO₂',    unit:'mmHg', min:10,  max:80,  init:35,  color:'#a78bfa'},
+  {id:'etco2',label:'ETCO₂',    unit:'kPa',  min:0,   max:100, init:47,  color:'#a78bfa', fmt:v=>(v/10).toFixed(1)},
 ];
 const DIAL_START=-135, DIAL_SWEEP=270;
 
@@ -1170,7 +1204,10 @@ function updateDial(id){
   const fillEnd=DIAL_START+DIAL_SWEEP*pct;
   document.getElementById('dbg_'+id).setAttribute('d',dialArc(DIAL_START,DIAL_START+DIAL_SWEEP));
   document.getElementById('dfl_'+id).setAttribute('d',pct>0.005?dialArc(DIAL_START,fillEnd):'');
-  document.getElementById('dtx_'+id).textContent=val;
+  document.getElementById('dtx_'+id).textContent=def.fmt?def.fmt(val):val;
+  // Knob dot on arc tip
+  const knb=document.getElementById('dknb_'+id);
+  if(knb){const [kx,ky]=dialXY(DIAL_START+DIAL_SWEEP*pct,30);knb.setAttribute('cx',kx);knb.setAttribute('cy',ky);}
 }
 function changeDial(id,delta){
   const def=DDEFS.find(d=>d.id===id);
@@ -1184,6 +1221,7 @@ function buildDial(def){
     <svg class="dial-svg" viewBox="0 0 80 80" width="72" height="72">
       <path id="dbg_${def.id}" stroke="rgba(255,255,255,0.10)" stroke-width="6" fill="none" stroke-linecap="round"/>
       <path id="dfl_${def.id}" stroke="${def.color}" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <circle id="dknb_${def.id}" r="5" fill="${def.color}" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"/>
       <text id="dtx_${def.id}" x="40" y="47" text-anchor="middle"
         font-family="'Inter',sans-serif" font-size="17" font-weight="800" fill="white"
         font-variant-numeric="tabular-nums"></text>
@@ -1299,20 +1337,29 @@ function updWheelItems(scroll){
   });
 }
 
-buildInlineWheel({id:'a_hr',  unit:'bpm', values:rng(30,200), init:60},'wc_a_hr');
-buildInlineWheel({id:'a_spo2',unit:'%',   values:rng(70,100), init:99},'wc_a_spo2');
-buildInlineWheel({id:'p_wt',  unit:'kg',  values:rng(10,250), init:70},'wc_p_wt');
+buildInlineWheel({id:'a_hr',  unit:'bpm',  values:rng(30,200),  init:60}, 'wc_a_hr');
+buildInlineWheel({id:'a_spo2',unit:'%',    values:rng(70,100),  init:99}, 'wc_a_spo2');
+buildInlineWheel({id:'a_bps', unit:'mmHg', values:rng(40,250),  init:120},'wc_a_bps');
+buildInlineWheel({id:'a_bpd', unit:'mmHg', values:rng(20,150),  init:80}, 'wc_a_bpd');
+buildInlineWheel({id:'v_bps', unit:'mmHg', values:rng(40,250),  init:120},'wc_v_bps');
+buildInlineWheel({id:'v_bpd', unit:'mmHg', values:rng(20,150),  init:80}, 'wc_v_bpd');
+buildInlineWheel({id:'p_wt',  unit:'kg',   values:rng(10,250),  init:70}, 'wc_p_wt');
 
 // ═════════════ DRUG LOG ═════════════
 function logDrug(){
   const drug=document.getElementById('d_drug').value;
-  const dose=document.getElementById('d_dose').value;
+  const dose=document.getElementById('d_dose').value.trim();
   const route=document.getElementById('d_route').value;
   if(!drug||!dose){alert('Select a drug and enter a dose.');return;}
+  const unit=DRUG_UNITS[drug]||'';
+  const doseStr=dose+(unit&&!dose.toLowerCase().includes(unit.toLowerCase())?' '+unit:'');
   const now=new Date();
-  drugs.push({drug,dose,route,time:fmtClock(now),elapsed:fmtEl(swSec),id:Date.now()});
+  drugs.push({drug,dose:doseStr,route,time:fmtClock(now),elapsed:fmtEl(swSec),id:Date.now()});
   renderDrugs();
-  document.getElementById('d_drug').value='';document.getElementById('d_dose').value='';
+  document.getElementById('d_drug').value='';
+  document.getElementById('d_dose').value='';
+  const lbl=document.getElementById('d_unit_lbl');if(lbl)lbl.textContent='';
+  document.getElementById('d_dose').placeholder='Dose';
 }
 function renderDrugs(){
   const c=document.getElementById('drugEntries');
@@ -1333,7 +1380,8 @@ function delDrug(id){drugs=drugs.filter(d=>d.id!==id);renderDrugs();}
 
 // ═════════════ VITALS LOG ═════════════
 function logVitals(){
-  const hr=dialVals.hr,spo2=dialVals.spo2,rr=dialVals.rr,etco2=dialVals.etco2;
+  const hr=dialVals.hr,spo2=dialVals.spo2,rr=dialVals.rr;
+  const etco2=(dialVals.etco2/10).toFixed(1); // display as kPa string
   const bps=document.getElementById('v_bps').value;
   const bpd=document.getElementById('v_bpd').value;
   const bp=bps&&bpd?bps+'/'+bpd:(bps||bpd||'–');
@@ -1401,11 +1449,13 @@ function genRecord(){
 
   // EPR paragraph
   const proc=g('p_proc')||'the stated procedure';
-  const doc=g('p_doc')||'the clinician';
+  const doc=g('p_doc')||'the sedationist';
   const loc=g('p_loc');
   const dt=g('p_dt')?new Date(g('p_dt')).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'}):'the documented date';
   const wt=g('p_wt')?`, weight ${g('p_wt')} kg`:'';
   const allerg=g('p_allerg')||'NKDA';
+  const role=g('p_role')?` (${g('p_role')})`:'';
+  const baseBP=(g('a_bps')&&g('a_bpd'))?g('a_bps')+'/'+g('a_bpd'):(g('a_bps')||g('a_bpd')||'–');
   const asa=asaSel?`ASA grade ${asaSel}`:'ASA grade not documented';
   const consStr=cons.length?cons.join(', '):'consent documented';
   const drugSummary=drugs.length?drugs.map(d=>`${d.drug} ${d.dose} ${d.route}`).join('; '):'no drugs documented';
@@ -1422,7 +1472,7 @@ function genRecord(){
   const eprText=
 `PROCEDURAL SEDATION — Weston General Hospital Emergency Medicine
 
-The patient${wt} underwent ${proc} under procedural sedation performed by ${doc} in ${loc} on ${dt}. Allergies: ${allerg}. ${asa}. Consent: ${consStr}. Fasting: solids ${g('a_sol')||'not documented'}, fluids ${g('a_fld')||'not documented'}. Baseline: HR ${g('a_hr')||'–'} bpm, BP ${g('a_bp')||'–'}, SpO₂ ${g('a_spo2')||'–'}%.
+The patient${wt} underwent ${proc} under procedural sedation performed by ${doc} in ${loc} on ${dt}. Allergies: ${allerg}. ${asa}. Consent: ${consStr}. Fasting: solids ${g('a_sol')||'not documented'}, fluids ${g('a_fld')||'not documented'}. Baseline: HR ${g('a_hr')||'–'} bpm, BP ${baseBP}, SpO₂ ${g('a_spo2')||'–'}%.
 
 Drugs administered: ${drugSummary}. ${nObs} set${nObs!==1?'s':''} of intra-procedural observations were recorded.${vitConcerns} ${durNote}
 
@@ -1445,7 +1495,8 @@ Documented by: ${doc} | ${new Date().toLocaleString('en-GB',{dateStyle:'medium',
     ${recSection('PATIENT & PROCEDURE',`<div class="rec-row">
       <div class="rec-field"><strong>Procedure:</strong><br>${g('p_proc')||'–'}</div>
       <div class="rec-field"><strong>Date/Time:</strong><br>${g('p_dt')||'–'}</div>
-      <div class="rec-field"><strong>Clinician:</strong><br>${g('p_doc')||'–'}</div>
+      <div class="rec-field"><strong>Sedationist:</strong><br>${g('p_doc')||'–'}</div>
+      <div class="rec-field"><strong>Procedure Done By:</strong><br>${g('p_role')||'–'}</div>
       <div class="rec-field"><strong>Location:</strong><br>${g('p_loc')}</div>
       <div class="rec-field"><strong>Weight:</strong><br>${g('p_wt')||'–'} kg</div>
       <div class="rec-field"><strong>Allergies:</strong><br>${g('p_allerg')||'–'}</div>
@@ -1461,13 +1512,13 @@ Documented by: ${doc} | ${new Date().toLocaleString('en-GB',{dateStyle:'medium',
     </div>
     ${airArr.length?`<div style="margin-top:7px;font-size:12px;"><strong>Airway concerns:</strong> ${airArr.join(', ')}</div>`:''}
     ${cons.length?`<div style="margin-top:5px;font-size:12px;"><strong>Consent:</strong> ${cons.join(', ')}</div>`:''}
-    <div style="margin-top:6px;font-size:12px;"><strong>Baseline:</strong> HR ${g('a_hr')||'–'} bpm · BP ${g('a_bp')||'–'} · SpO₂ ${g('a_spo2')||'–'}%</div>
+    <div style="margin-top:6px;font-size:12px;"><strong>Baseline:</strong> HR ${g('a_hr')||'–'} bpm · BP ${baseBP} · SpO₂ ${g('a_spo2')||'–'}%</div>
     ${g('a_hx')?`<div style="margin-top:5px;font-size:12px;"><strong>PMHx:</strong> ${g('a_hx')}</div>`:''}`)}
 
     ${recSection('DRUG ADMINISTRATION',`<ul class="rec-drugs">${drugRows}</ul>`)}
 
     ${recSection('VITAL SIGNS',vitals.length?`<div style="overflow-x:auto;"><table class="vt" style="font-size:11px;">
-      <thead><tr><th>Time</th><th>Elapsed</th><th>HR</th><th>BP</th><th>SpO₂</th><th>RR</th><th>ETCO₂</th><th>AVPU</th></tr></thead>
+      <thead><tr><th>Time</th><th>Elapsed</th><th>HR</th><th>BP</th><th>SpO₂</th><th>RR</th><th>ETCO₂<br>(kPa)</th><th>AVPU</th></tr></thead>
       <tbody>${vRows}</tbody></table></div>
       ${g('v_notes')?`<div style="margin-top:7px;font-size:12px;"><strong>Notes:</strong> ${g('v_notes')}</div>`:''}`
       :'<div style="color:var(--ink-l);font-size:12px;">No observations recorded</div>')}
@@ -1507,6 +1558,16 @@ function copyEPR(){
 }
 
 function newSess(){if(confirm('Start a new session? All data will be cleared.'))location.reload();}
+
+
+// Drug unit label
+document.addEventListener('DOMContentLoaded',()=>{});
+document.getElementById('d_drug').addEventListener('change',function(){
+  const u=DRUG_UNITS[this.value]||'';
+  const lbl=document.getElementById('d_unit_lbl');
+  if(lbl)lbl.textContent=u;
+  document.getElementById('d_dose').placeholder=u?'Dose ('+u+')':'Dose';
+});
 
 // Chip toggle
 document.querySelectorAll('.chip').forEach(chip=>{
