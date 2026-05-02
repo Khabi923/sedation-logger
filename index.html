@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>WGH EM — Sedation Logger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════
+   RHAZES-INSPIRED DESIGN TOKENS
+══════════════════════════════════════════ */
+:root{
+  /* Brand */
+  --cream:     #f2ebe0;
+  --cream-d:   #e8ded0;
+  --forest:    #0d2b1f;
+  --forest-m:  #1a4735;
+  --forest-l:  #2d6b50;
+  --forest-xl: #e6f0eb;
+  --forest-xs: rgba(13,43,31,0.06);
+  --gold:      #b5894e;
+  --gold-l:    #f5edd8;
+  /* Utility */
+  --white:     #ffffff;
+  --ink:       #0d2b1f;
+  --ink-m:     #3d5248;
+  --ink-l:     #7a9485;
+  --border:    rgba(13,43,31,0.10);
+  --border-l:  rgba(13,43,31,0.06);
+  /* Status colours (muted, professional) */
+  --ok:        #1a6644; --okl:#e6f4ee;
+  --warn:      #8b5e1a; --warnl:#fdf3e3;
+  --danger:    #8b1a1a; --dangerl:#fdeaea;
+  --info:      #1a4a6b; --infol:#e6f0fa;
+  /* Glass */
+  --glass-bg:  rgba(255,255,255,0.45);
+  --glass-b:   rgba(255,255,255,0.65);
+  --glass-s:   0 4px 24px rgba(13,43,31,0.10), inset 0 1px 0 rgba(255,255,255,0.8);
+  /* Type */
+  --serif:     'DM Serif Display', Georgia, serif;
+  --sans:      'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Radius */
+  --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 24px;
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html{ scroll-behavior:smooth; }
+body{
+  font-family: var(--sans);
+  background: var(--cream);
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(45,107,80,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(181,137,78,0.06) 0%, transparent 60%);
+  min-height: 100vh;
+  color: var(--ink);
+  padding-bottom: 52px;
+}
+
+/* ══════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════ */
+.hdr{
+  background: rgba(242,235,224,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 13px 18px;
+  display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 300;
+}
+.hdr-mark{
+  display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0;
+}
+.hdr-dot{
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  background: var(--forest);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(13,43,31,0.25);
+}
+.hdr-dot svg{ width:18px; height:18px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; }
+.hdr-words{ min-width: 0; }
+.hdr-words h1{
+  font-family: var(--serif);
+  font-size: 14px; font-weight: 400;
+  color: var(--forest); line-height: 1.2;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hdr-words p{ font-size: 10px; color: var(--ink-l); margin-top: 1px; letter-spacing: 0.3px; }
+.hdr-badge{
+  margin-left: auto; flex-shrink: 0;
+  background: var(--forest);
+  border-radius: 18px; padding: 5px 13px;
+  font-size: 12px; font-weight: 600;
+  color: #fff; font-variant-numeric: tabular-nums;
+  display: none; letter-spacing: 0.5px;
+}
+
+/* ══════════════════════════════════════════
+   STEP PROGRESS — Apple Glass Pill Bar
+══════════════════════════════════════════ */
+.prg{ padding: 16px 14px 0; max-width: 680px; margin: 0 auto; }
+.prg-glass{
+  display: flex; gap: 4px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-b);
+  border-radius: var(--r-lg);
+  padding: 5px;
+  box-shadow: var(--glass-s);
+}
+.sp{
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 3px; padding: 9px 4px 7px;
+  border-radius: var(--r-md); cursor: pointer;
+  border: none; background: transparent;
+  transition: all 0.3s cubic-bezier(0.34,1.3,0.64,1);
+  position: relative;
+}
+.sp-num{
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; transition: all 0.3s;
+  background: rgba(13,43,31,0.08);
+  color: var(--ink-l);
+}
+.sp-label{
+  font-size: 9px; font-weight: 600;
+  color: var(--ink-l); text-transform: uppercase;
+  letter-spacing: 0.5px; transition: color 0.3s;
+}
+.sp.done .sp-num{
+  background: rgba(13,43,31,0.12);
+  color: var(--forest-m);
+}
+.sp.done .sp-label{ color: var(--forest-m); }
+.sp.active{
+  background: var(--forest);
+  box-shadow: 0 3px 12px rgba(13,43,31,0.28), 0 1px 3px rgba(13,43,31,0.15);
+}
+.sp.active .sp-num{ background: rgba(255,255,255,0.15); color: #fff; }
+.sp.active .sp-label{ color: rgba(255,255,255,0.75); }
+
+/* ══════════════════════════════════════════
+   CARDS
+══════════════════════════════════════════ */
+.cc{ max-width: 680px; margin: 14px auto 0; padding: 0 12px; }
+.sc{
+  background: var(--white);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 16px rgba(13,43,31,0.07), 0 1px 3px rgba(13,43,31,0.05);
+  overflow: hidden; display: none;
+  animation: su 0.4s cubic-bezier(0.34,1.15,0.64,1);
+}
+.sc.active{ display: block; }
+@keyframes su{ from{ opacity:0; transform:translateY(24px) } to{ opacity:1; transform:none } }
+
+/* Card header — glass morphism icon + serif title */
+.ch{
+  padding: 18px 20px 16px;
+  display: flex; align-items: center; gap: 13px;
+  border-bottom: 1px solid var(--border-l);
+}
+.ci{
+  width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.7);
+  box-shadow: 0 2px 10px rgba(13,43,31,0.10), inset 0 1px 0 rgba(255,255,255,0.9);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+.ch h2{
+  font-family: var(--serif);
+  font-size: 19px; font-weight: 400; color: var(--forest);
+  line-height: 1.2;
+}
+.ch p{ font-size: 12px; color: var(--ink-l); margin-top: 3px; }
+.cb{ padding: 18px 20px 20px; }
+
+/* ══════════════════════════════════════════
+   FORM ELEMENTS
+══════════════════════════════════════════ */
+.fg{ margin-bottom: 13px; }
+.fr{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fr3{ grid-template-columns: 1fr 1fr 1fr; }
+label{
+  display: block; font-size: 11px; font-weight: 600;
+  color: var(--ink-m); margin-bottom: 5px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+input[type=text], input[type=number], input[type=date],
+input[type=datetime-local], select, textarea{
+  width: 100%; padding: 10px 13px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm); font-size: 15px;
+  font-family: var(--sans);
+  background: var(--cream); color: var(--ink);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  -webkit-appearance: none;
+}
+input:focus, select:focus, textarea:focus{
+  outline: none; border-color: var(--forest-m);
+  box-shadow: 0 0 0 3px rgba(26,71,53,0.10);
+  background: var(--white);
+}
+textarea{ min-height: 70px; resize: vertical; font-size: 14px; }
+
+/* ══════════════════════════════════════════
+   ASA SELECTOR
+══════════════════════════════════════════ */
+.asa-g{ display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; }
+.asa-b{
+  padding: 10px 3px; border-radius: var(--r-sm);
+  border: 1.5px solid var(--border); background: var(--cream);
+  cursor: pointer; text-align: center; font-family: var(--sans);
+  font-size: 13px; font-weight: 700; color: var(--ink-m);
+  transition: all 0.22s;
+}
+.asa-b span{ display: block; font-size: 9px; font-weight: 500; color: var(--ink-l); margin-top: 2px; }
+.asa-b.sel{
+  border-color: var(--forest); background: var(--forest);
+  color: #fff; box-shadow: 0 3px 10px rgba(13,43,31,0.22);
+}
+.asa-b.sel span{ color: rgba(255,255,255,0.65); }
+.asa-d{
+  margin-top: 8px; padding: 10px 14px; border-radius: var(--r-sm);
+  background: var(--forest-xl); font-size: 12px; color: var(--forest-m);
+  display: none; line-height: 1.5; border: 1px solid rgba(26,71,53,0.12);
+}
+.asa-d.vis{ display: block; animation: fi 0.3s; }
+
+/* ══════════════════════════════════════════
+   CHIPS
+══════════════════════════════════════════ */
+.chips{ display: flex; flex-wrap: wrap; gap: 7px; }
+.chip{
+  display: flex; align-items: center; gap: 5px; padding: 7px 13px;
+  border-radius: 20px; border: 1.5px solid var(--border);
+  background: var(--cream); cursor: pointer;
+  font-size: 12px; font-weight: 500; color: var(--ink-m);
+  transition: all 0.2s; user-select: none; font-family: var(--sans);
+}
+.chip input{ display: none; }
+.chip.on{
+  border-color: var(--forest); background: var(--forest);
+  color: #fff;
+}
+
+/* ══════════════════════════════════════════
+   WHEEL PICKERS — warm dark glass style
+══════════════════════════════════════════ */
+.wheels-row{
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 8px;
+  margin-bottom: 12px;
+}
+.wheel-card{
+  background: var(--forest);
+  border-radius: var(--r-md); padding: 10px 4px 11px;
+  display: flex; flex-direction: column; align-items: center;
+  position: relative; overflow: hidden;
+  box-shadow: 0 4px 14px rgba(13,43,31,0.22), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.wheel-card::before{
+  content:''; position:absolute; top:0; left:0; right:0; bottom:0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+.wc-label{
+  font-size: 9px; font-weight: 600; letter-spacing: 0.7px;
+  text-transform: uppercase; color: rgba(255,255,255,0.38);
+  margin-bottom: 6px; font-family: var(--sans);
+}
+.wc-unit{
+  font-size: 9px; font-weight: 600; letter-spacing: 0.5px;
+  text-transform: uppercase; color: rgba(255,255,255,0.32);
+  margin-top: 6px; font-family: var(--sans);
+}
+.wheel-outer{
+  position: relative; width: 100%; height: 160px; overflow: hidden;
+}
+.wheel-outer::before,.wheel-outer::after{
+  content:''; position:absolute; left:0; right:0; height:56px; z-index:10; pointer-events:none;
+}
+.wheel-outer::before{ top:0; background:linear-gradient(to bottom,var(--forest) 0%,transparent 100%); }
+.wheel-outer::after { bottom:0; background:linear-gradient(to top,var(--forest) 0%,transparent 100%); }
+.wheel-hl{
+  position: absolute; top:50%; left:8px; right:8px;
+  transform: translateY(-50%); height: 40px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 9px;
+  border: 1px solid rgba(255,255,255,0.10);
+  z-index: 5; pointer-events: none;
+}
+.wheel-scroll{
+  position:absolute; top:0; left:0; right:0; bottom:0;
+  overflow-y:scroll; overflow-x:hidden;
+  scroll-snap-type:y mandatory;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.wheel-scroll::-webkit-scrollbar{ display:none; }
+.wheel-pad{ height:60px; }
+.wheel-item{
+  height:40px;
+  display:flex; align-items:center; justify-content:center;
+  scroll-snap-align:center;
+  font-size:22px; font-weight:700; font-family:var(--sans);
+  color:rgba(255,255,255,0.3); font-variant-numeric:tabular-nums;
+  cursor:pointer; user-select:none; transition:all 0.1s;
+}
+.wheel-item.near { color:rgba(255,255,255,0.55); font-size:19px; }
+.wheel-item.sel  { color:#fff; font-size:24px; }
+.wheel-item.dim  { color:rgba(255,255,255,0.18); font-size:17px; }
+
+/* ══════════════════════════════════════════
+   WHEEL COMPACT — inline form use
+══════════════════════════════════════════ */
+.wheel-sm .wheel-outer{ height:120px; }
+.wheel-sm .wheel-outer::before,
+.wheel-sm .wheel-outer::after{ height:40px; }
+.wheel-sm .wheel-pad{ height:40px; }
+
+/* ══════════════════════════════════════════
+   COCKPIT DIALS — Live Monitor
+══════════════════════════════════════════ */
+.dials-panel{
+  background:var(--forest);
+  border-radius:var(--r-lg); padding:14px 10px 12px;
+  margin-bottom:13px;
+  box-shadow:0 4px 20px rgba(13,43,31,0.25);
+  position:relative; overflow:hidden;
+}
+.dials-panel::before{
+  content:''; position:absolute; top:-40%; right:-20%; width:200px; height:200px;
+  background:radial-gradient(circle,rgba(255,255,255,0.04) 0%,transparent 70%);
+  pointer-events:none;
+}
+.dials-grid{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:6px;
+}
+.dial-card{
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:6px 2px;
+}
+.dial-lbl{
+  font-size:9px; font-weight:600; letter-spacing:0.7px;
+  text-transform:uppercase; color:rgba(255,255,255,0.38);
+  font-family:var(--sans); text-align:center; line-height:1.3;
+}
+.dial-svg{ display:block; cursor:grab; touch-action:none; user-select:none; }
+.dial-svg:active{ cursor:grabbing; }
+.dial-unit{
+  font-size:9px; color:rgba(255,255,255,0.30);
+  font-family:var(--sans); text-transform:uppercase; letter-spacing:0.5px;
+}
+.dial-btns{ display:flex; gap:6px; margin-top:1px; }
+.dial-btn{
+  width:26px; height:26px; border-radius:50%; border:none;
+  background:rgba(255,255,255,0.10); color:rgba(255,255,255,0.80);
+  font-size:16px; font-weight:600; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--sans); transition:background 0.15s;
+  -webkit-user-select:none; user-select:none;
+}
+.dial-btn:active{ background:rgba(255,255,255,0.25); }
+
+/* ══════════════════════════════════════════
+   ACKNOWLEDGE BUTTON
+══════════════════════════════════════════ */
+.ack-btn{
+  padding:6px 13px; border-radius:12px; border:none;
+  background:var(--danger); color:#fff;
+  font-size:11px; font-weight:700; cursor:pointer;
+  font-family:var(--sans); letter-spacing:0.3px;
+  display:none; transition:all 0.2s; white-space:nowrap;
+}
+.ack-btn:active{ transform:scale(0.95); }
+.obs-bar.due .ack-btn{ display:block; animation:pulse-btn 1.2s ease-in-out infinite; }
+@keyframes pulse-btn{ 0%,100%{opacity:1} 50%{opacity:0.75} }
+
+/* ══════════════════════════════════════════
+   STOPWATCH — Rhazes dark panel
+══════════════════════════════════════════ */
+.sw-panel{
+  background: var(--forest);
+  border-radius: var(--r-lg); padding: 16px;
+  margin-bottom: 13px; color: #fff;
+  box-shadow: 0 4px 20px rgba(13,43,31,0.25);
+  position: relative; overflow: hidden;
+}
+.sw-panel::before{
+  content:''; position:absolute; top:-40%; right:-20%; width:200px; height:200px;
+  background: radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%);
+  pointer-events:none;
+}
+.sw-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.sw-elapsed{
+  font-size:52px; font-weight:800; font-family:var(--sans);
+  font-variant-numeric:tabular-nums; letter-spacing:1px; line-height:1;
+}
+.sw-sublabel{ font-size:10px; color:rgba(255,255,255,0.38); margin-top:3px; letter-spacing:0.3px; }
+.sw-status{
+  display:inline-block; padding:3px 10px; border-radius:10px;
+  font-size:9px; font-weight:700; letter-spacing:0.5px; margin-left:8px;
+  vertical-align:middle; font-family:var(--sans);
+}
+.sw-status.running{ background:rgba(52,211,153,0.2); color:#4ade80; }
+.sw-status.paused { background:rgba(251,191,36,0.2);  color:#fbbf24; }
+.sw-status.stopped{ background:rgba(252,165,165,0.2); color:#fca5a5; }
+.sw-times{ display:flex; flex-direction:column; gap:4px; text-align:right; flex-shrink:0; }
+.sw-time-row{ font-size:10px; }
+.sw-time-row span{ display:block; font-size:8px; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:0.4px; }
+.sw-time-row strong{ font-size:13px; font-variant-numeric:tabular-nums; color:rgba(255,255,255,0.8); }
+.sw-ctrls{ display:flex; gap:8px; margin-top:12px; }
+.sw-btn{
+  padding:8px 18px; border-radius:20px; border:none;
+  font-size:12px; font-weight:600; cursor:pointer;
+  transition:all 0.2s; font-family:var(--sans); letter-spacing:0.2px;
+}
+.sw-go { background:#fff; color:var(--forest); }
+.sw-pa { background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); }
+.sw-st { background:rgba(220,38,38,0.2); color:#fca5a5; border:1px solid rgba(220,38,38,0.3); }
+.sw-rs { background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.45); }
+.sw-btn:hover{ filter:brightness(1.1); }
+
+/* ══════════════════════════════════════════
+   OBS REMINDER
+══════════════════════════════════════════ */
+.obs-bar{
+  display:flex; align-items:center; justify-content:space-between;
+  background: var(--forest-xl);
+  border: 1.5px solid rgba(26,71,53,0.14);
+  border-radius: var(--r-sm); padding:10px 14px; margin-bottom:12px;
+  transition:all 0.3s;
+}
+.obs-bar.due{
+  background:#fdeaea; border-color:rgba(139,26,26,0.25);
+  animation:pulse-border 1.2s ease-in-out infinite;
+}
+@keyframes pulse-border{
+  0%,100%{ box-shadow:0 0 0 0 rgba(139,26,26,0.12); }
+  50%     { box-shadow:0 0 0 6px rgba(139,26,26,0.04); }
+}
+.obs-lbl{ font-size:11px; font-weight:600; color:var(--forest-m); letter-spacing:0.3px; }
+.obs-cd{
+  font-size:20px; font-weight:800; font-family:var(--sans);
+  font-variant-numeric:tabular-nums; color:var(--ok);
+}
+.obs-bar.due .obs-lbl{ color:var(--danger); }
+.obs-bar.due .obs-cd{ color:var(--danger); animation:blink 0.6s ease-in-out infinite alternate; }
+@keyframes blink{ from{opacity:1} to{opacity:0.3} }
+.obs-badge{
+  background:var(--danger); color:#fff; font-size:10px;
+  font-weight:700; padding:3px 10px; border-radius:12px;
+  letter-spacing:0.4px; display:none;
+}
+.obs-bar.due .obs-badge{ display:block; }
+
+/* ══════════════════════════════════════════
+   DRUG LOG
+══════════════════════════════════════════ */
+.drug-inp-row{
+  display:grid; grid-template-columns:1fr 80px 66px auto;
+  gap:7px; align-items:end; margin-bottom:9px;
+}
+.de{
+  display:flex; align-items:center; gap:8px;
+  background:var(--forest-xl); border:1px solid rgba(26,71,53,0.10);
+  border-radius:var(--r-sm); padding:8px 11px;
+  margin-bottom:5px; animation:fi 0.3s;
+}
+.de-time{
+  font-size:10px; font-weight:700; color:var(--forest-m); min-width:50px;
+  font-variant-numeric:tabular-nums;
+}
+.de-name{ font-size:13px; font-weight:600; color:var(--ink); flex:1; }
+.de-dose{ font-size:12px; color:var(--ink-l); }
+.de-del{ margin-left:auto; cursor:pointer; font-size:14px; color:var(--ink-l); }
+
+/* ══════════════════════════════════════════
+   VITALS TABLE
+══════════════════════════════════════════ */
+.vt{ width:100%; border-collapse:collapse; font-size:12px; }
+.vt th{
+  background:var(--forest); color:#fff;
+  padding:8px 5px; font-size:10px; font-weight:600;
+  text-align:center; letter-spacing:0.3px;
+}
+.vt th:first-child{ border-radius:8px 0 0 0; }
+.vt th:last-child{ border-radius:0 8px 0 0; }
+.vt td{ padding:7px 5px; text-align:center; border-bottom:1px solid var(--border-l); }
+.vt tr:hover td{ background:var(--forest-xs); }
+.vt tr{ animation:fi 0.3s; }
+
+.sec-ttl{
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:0.6px; color:var(--ink-l); margin-bottom:8px;
+  display:flex; align-items:center; gap:6px;
+}
+.sec-ttl::before{ content:''; flex:0 0 2px; height:12px; border-radius:2px; background:var(--forest-m); }
+
+/* ══════════════════════════════════════════
+   ALDRETE
+══════════════════════════════════════════ */
+.al-item{
+  background:var(--cream); border-radius:var(--r-sm);
+  padding:13px; margin-bottom:8px;
+  border:1.5px solid var(--border); transition:all 0.22s;
+}
+.al-item.sc2{
+  border-color:rgba(13,43,31,0.25); background:var(--forest-xl);
+}
+.al-item h4{ font-size:13px; font-weight:600; color:var(--ink); }
+.al-item p{ font-size:11px; color:var(--ink-l); margin:3px 0 10px; }
+.sbr{ display:flex; gap:6px; }
+.sb{
+  flex:1; padding:9px 3px; border-radius:var(--r-sm);
+  border:1.5px solid var(--border); background:var(--white);
+  cursor:pointer; font-size:13px; font-weight:700;
+  color:var(--ink-m); text-align:center; transition:all 0.22s;
+  font-family:var(--sans);
+}
+.sb span{ display:block; font-size:9px; font-weight:500; color:var(--ink-l); margin-top:3px; }
+.sb.sel{
+  border-color:var(--forest); background:var(--forest); color:#fff;
+  box-shadow:0 3px 10px rgba(13,43,31,0.22);
+}
+.sb.sel span{ color:rgba(255,255,255,0.65); }
+.al-total{
+  text-align:center; padding:16px;
+  background:var(--forest);
+  border-radius:var(--r-md); color:#fff; margin-top:10px;
+  box-shadow:0 4px 16px rgba(13,43,31,0.22);
+}
+.al-total .big{
+  font-family:var(--serif); font-size:52px; line-height:1;
+  font-weight:400;
+}
+.al-total .denom{ font-size:20px; opacity:0.5; }
+.al-total .verd{ font-size:14px; font-weight:600; margin-top:6px; opacity:0.9; }
+
+/* ══════════════════════════════════════════
+   NAVIGATION BUTTONS
+══════════════════════════════════════════ */
+.nav{ display:flex; gap:8px; margin-top:14px; padding:0 20px 20px; }
+.btn-back{
+  padding:12px 18px; border-radius:var(--r-sm);
+  border:1.5px solid var(--border); background:var(--white);
+  color:var(--ink-m); font-size:14px; font-weight:600;
+  cursor:pointer; font-family:var(--sans); transition:all 0.2s;
+}
+.btn-back:hover{ background:var(--cream); }
+.btn-nxt{
+  flex:1; padding:13px; border-radius:var(--r-sm); border:none;
+  font-size:15px; font-weight:600; color:#fff; cursor:pointer;
+  font-family:var(--sans); letter-spacing:0.2px;
+  background:var(--forest);
+  box-shadow:0 4px 14px rgba(13,43,31,0.25), 0 1px 3px rgba(13,43,31,0.15);
+  transition:all 0.22s;
+}
+.btn-nxt:hover{ background:var(--forest-m); transform:translateY(-1px); box-shadow:0 6px 18px rgba(13,43,31,0.28); }
+.btn-nxt:active{ transform:translateY(0); }
+
+.log-drug-btn{
+  padding:10px 14px; border-radius:var(--r-sm); border:none;
+  background:var(--forest); color:#fff; font-size:13px;
+  font-weight:600; cursor:pointer; font-family:var(--sans);
+  transition:all 0.2s; white-space:nowrap;
+}
+.log-vital-btn{
+  width:100%; padding:13px; border-radius:var(--r-sm); border:none;
+  background:var(--forest); color:#fff; font-size:14px;
+  font-weight:600; cursor:pointer; font-family:var(--sans);
+  margin-top:7px; transition:all 0.2s;
+  box-shadow:0 3px 10px rgba(13,43,31,0.18);
+}
+.log-drug-btn:hover,.log-vital-btn:hover{ background:var(--forest-m); }
+
+.empty-msg{ text-align:center; padding:16px; color:var(--ink-l); font-size:12px; }
+.sep{ height:12px; }
+
+/* ══════════════════════════════════════════
+   EPR SUMMARY BOX
+══════════════════════════════════════════ */
+.epr-box{
+  background:var(--forest); border-radius:var(--r-lg);
+  padding:16px; margin-bottom:13px;
+  box-shadow:0 4px 20px rgba(13,43,31,0.22);
+  position:relative; overflow:hidden;
+}
+.epr-box::before{
+  content:''; position:absolute; top:0; right:0;
+  width:120px; height:120px;
+  background:radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+  pointer-events:none;
+}
+.epr-title{
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:0.7px; color:rgba(255,255,255,0.45);
+  margin-bottom:10px; font-family:var(--sans);
+  display:flex; align-items:center; gap:7px;
+}
+.epr-title::before{ content:''; width:3px; height:12px; border-radius:2px; background:rgba(255,255,255,0.25); flex-shrink:0; }
+.epr-ta{
+  width:100%; min-height:140px; padding:12px;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.12); border-radius:var(--r-sm);
+  color:rgba(255,255,255,0.88); font-size:13px; line-height:1.65;
+  resize:vertical; font-family:var(--sans);
+}
+.epr-ta:focus{ outline:none; border-color:rgba(255,255,255,0.25); }
+.copy-btn{
+  width:100%; padding:11px; border-radius:var(--r-sm); border:none;
+  background:rgba(255,255,255,0.10); border:1px solid rgba(255,255,255,0.18);
+  color:rgba(255,255,255,0.85); font-size:13px; font-weight:600;
+  cursor:pointer; margin-top:8px; font-family:var(--sans);
+  transition:all 0.2s; letter-spacing:0.2px;
+}
+.copy-btn:hover{ background:rgba(255,255,255,0.16); }
+.copy-btn.done{ background:rgba(74,222,128,0.15); border-color:rgba(74,222,128,0.3); color:#4ade80; }
+
+/* ══════════════════════════════════════════
+   RECORD CARDS
+══════════════════════════════════════════ */
+.rec-card{
+  background:var(--white); border-radius:var(--r-md);
+  border:1px solid var(--border); margin-bottom:9px; overflow:hidden;
+}
+.rec-head{
+  padding:9px 14px; font-size:10px; font-weight:700;
+  text-transform:uppercase; letter-spacing:0.5px; color:rgba(255,255,255,0.9);
+  background:var(--forest);
+}
+.rec-body{ padding:13px 14px; }
+.rec-row{ display:flex; flex-wrap:wrap; gap:8px 18px; font-size:12px; color:var(--ink-m); }
+.rec-field strong{ color:var(--ink); }
+.rec-drugs{ font-size:12px; }
+.rec-drugs li{ padding:4px 0; border-bottom:1px solid var(--border-l); color:var(--ink-m); }
+
+/* ══════════════════════════════════════════
+   PRINT / ACTION BUTTONS
+══════════════════════════════════════════ */
+.print-btn{
+  width:100%; padding:14px; border-radius:var(--r-sm); border:none;
+  background:var(--forest); color:#fff;
+  font-size:15px; font-weight:600; cursor:pointer; font-family:var(--sans);
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  box-shadow:0 4px 16px rgba(13,43,31,0.28); margin-top:3px;
+  letter-spacing:0.2px; transition:all 0.22s;
+}
+.print-btn:hover{ background:var(--forest-m); transform:translateY(-1px); }
+.new-btn{
+  width:100%; padding:12px; border-radius:var(--r-sm);
+  border:1.5px solid var(--border); background:var(--white);
+  color:var(--ink-m); font-size:14px; font-weight:600;
+  cursor:pointer; margin-top:7px; font-family:var(--sans); transition:all 0.2s;
+}
+.new-btn:hover{ background:var(--cream); }
+
+/* ══════════════════════════════════════════
+   BLOOD PRESSURE ROW
+══════════════════════════════════════════ */
+.bp-row{ margin-bottom:11px; }
+.bp-inner{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+/* ══════════════════════════════════════════
+   ANIMATIONS & UTILITIES
+══════════════════════════════════════════ */
+@keyframes fi{ from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
+
+/* ══════════════════════════════════════════
+   PRINT
+══════════════════════════════════════════ */
+@media print{
+  body{ background:#fff!important; padding:0; }
+  .hdr,.prg,.nav,.print-btn,.new-btn,.epr-box,#s1,#s2,#s3,#s4{ display:none!important; }
+  #s5{ display:block!important; }
+  .sc{ box-shadow:none!important; border-radius:0!important; }
+  .rec-head{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════ */
+@media(max-width:520px){
+  .fr{ grid-template-columns:1fr; }
+  .fr3{ grid-template-columns:1fr 1fr; }
+  .wheels-row{ grid-template-columns:repeat(4,1fr); gap:5px; }
+  .dials-grid{ grid-template-columns:repeat(4,1fr); gap:3px; }
+  .wheel-item.sel{ font-size:21px; }
+  .drug-inp-row{ grid-template-columns:1fr 72px auto; }
+  .drug-inp-row .rt-s{ display:none; }
+  .sw-elapsed{ font-size:42px; }
+  .sp-label{ display:none; }
+}
+@media(max-width:380px){
+  .wheels-row{ grid-template-columns:1fr 1fr; }
+  .dials-grid{ grid-template-columns:repeat(2,1fr); }
+  .prg-glass{ gap:3px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════ HEADER ════ -->
+<header class="hdr">
+  <div class="hdr-mark">
+    <div class="hdr-dot">
+      <!-- syringe-inspired icon -->
+      <svg viewBox="0 0 24 24"><path d="M19 3l2 2M9 13l-4 4m0 0l-2 2m2-2l2 2M5 17l-2 2M18 6l-6 6m6-6l-4-4-6 6 4 4m2-10L8 8"/></svg>
+    </div>
+    <div class="hdr-words">
+      <h1>Weston General Hospital EM — Sedation Logger</h1>
+      <p>Procedural Sedation Checklist &amp; Record</p>
+    </div>
+  </div>
+  <div class="hdr-badge" id="hdrTimer">00:00</div>
+</header>
+
+<!-- ════ STEP PROGRESS — Glass Pill Bar ════ -->
+<div class="prg">
+  <div class="prg-glass">
+    <button class="sp active" id="sp1" onclick="gotoStep(1)">
+      <div class="sp-num">1</div><div class="sp-label">Patient</div>
+    </button>
+    <button class="sp" id="sp2" onclick="gotoStep(2)">
+      <div class="sp-num">2</div><div class="sp-label">Assess</div>
+    </button>
+    <button class="sp" id="sp3" onclick="gotoStep(3)">
+      <div class="sp-num">3</div><div class="sp-label">Monitor</div>
+    </button>
+    <button class="sp" id="sp4" onclick="gotoStep(4)">
+      <div class="sp-num">4</div><div class="sp-label">Aldrete</div>
+    </button>
+    <button class="sp" id="sp5" onclick="gotoStep(5)">
+      <div class="sp-num">5</div><div class="sp-label">Record</div>
+    </button>
+  </div>
+</div>
+
+<div class="cc">
+
+<!-- ════════════ STEP 1: PATIENT ════════════ -->
+<div class="sc active" id="s1">
+  <div class="ch">
+    <div class="ci">👤</div>
+    <div><h2>Patient Details</h2><p>Basic information &amp; procedure</p></div>
+  </div>
+  <div class="cb">
+    <div class="fg"><label>Date &amp; Time</label><input type="datetime-local" id="p_dt"></div>
+    <div class="fg"><label>Procedure / Indication</label>
+      <input type="text" id="p_proc" placeholder="e.g. Shoulder reduction, Cardioversion, Fracture manipulation"></div>
+    <div class="fr">
+      <div class="fg"><label>Clinician</label><input type="text" id="p_doc" placeholder="Name &amp; grade"></div>
+      <div class="fg"><label>Location</label>
+        <select id="p_loc"><option>Resus Bay</option><option>Majors</option><option>Theatre</option><option>Procedure Room</option><option>ICU</option><option>Other</option></select>
+      </div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Weight (kg)</label>
+        <input type="hidden" id="p_wt" value="70">
+        <div id="wc_p_wt"></div>
+      </div>
+      <div class="fg"><label>Allergies</label><input type="text" id="p_allerg" placeholder="NKDA / specify"></div>
+    </div>
+  </div>
+  <div class="nav"><button class="btn-nxt" onclick="gotoStep(2)">Next: Assessment →</button></div>
+</div>
+
+<!-- ════════════ STEP 2: ASSESSMENT ════════════ -->
+<div class="sc" id="s2">
+  <div class="ch">
+    <div class="ci">🩺</div>
+    <div><h2>Pre-Sedation Assessment</h2><p>ASA, airway &amp; clinical status</p></div>
+  </div>
+  <div class="cb">
+    <div class="fg">
+      <label>ASA Physical Status</label>
+      <div class="asa-g">
+        <button class="asa-b" onclick="selASA(1,'Healthy patient — no systemic disease')">I<span>Healthy</span></button>
+        <button class="asa-b" onclick="selASA(2,'Mild systemic disease — well controlled (e.g. controlled HTN, BMI 30–40)')">II<span>Mild</span></button>
+        <button class="asa-b" onclick="selASA(3,'Severe systemic disease — not incapacitating (e.g. COPD, poorly controlled DM)')">III<span>Severe</span></button>
+        <button class="asa-b" onclick="selASA(4,'Life-threatening systemic disease (e.g. recent MI/CVA, severe valve disease, sepsis)')">IV<span>Life threat</span></button>
+        <button class="asa-b" onclick="selASA(5,'Moribund — not expected to survive without procedure')">V<span>Moribund</span></button>
+      </div>
+      <div class="asa-d" id="asaDesc"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Last ate (solids)</label><input type="text" id="a_sol" placeholder="e.g. 6hrs ago"></div>
+      <div class="fg"><label>Last drank (fluids)</label><input type="text" id="a_fld" placeholder="e.g. 2hrs ago"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Mallampati Class</label>
+        <select id="a_mall"><option value="">Select…</option>
+          <option value="I">Class I — Full view</option><option value="II">Class II — Partial uvula</option>
+          <option value="III">Class III — Base uvula only</option><option value="IV">Class IV — Hard palate only</option>
+        </select>
+      </div>
+      <div class="fg"><label>Mouth Opening</label>
+        <select id="a_mouth"><option value="">Select…</option>
+          <option value=">3cm">&gt;3cm Normal</option><option value="2–3cm">2–3cm Moderate</option><option value="<2cm">&lt;2cm Restricted</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Airway Concerns</label>
+      <div class="chips" id="airChips">
+        <label class="chip"><input type="checkbox" value="Short neck"> Short neck</label>
+        <label class="chip"><input type="checkbox" value="Obese"> Obese</label>
+        <label class="chip"><input type="checkbox" value="Beard/Dentures"> Beard / Dentures</label>
+        <label class="chip"><input type="checkbox" value="C-spine restriction"> C-spine restriction</label>
+        <label class="chip"><input type="checkbox" value="Stridor"> Stridor</label>
+        <label class="chip"><input type="checkbox" value="Previous difficult airway"> Previous difficult airway</label>
+      </div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>IV Access</label>
+        <select id="a_iv"><option>Yes – 1 line</option><option>Yes – 2 lines</option><option>Intraosseous (IO)</option><option>Not yet secured</option></select>
+      </div>
+      <div class="fg"><label>Site</label><input type="text" id="a_ivsit" placeholder="e.g. left AC"></div>
+    </div>
+    <div class="fg"><label>PMHx / Medications</label>
+      <textarea id="a_hx" placeholder="Relevant history, regular medications, anticoagulants…"></textarea></div>
+    <div class="fg"><label>Baseline Observations</label>
+      <div class="fr3">
+        <div>
+          <label style="text-transform:none;font-size:11px;">HR (bpm)</label>
+          <input type="hidden" id="a_hr" value="60">
+          <div id="wc_a_hr"></div>
+        </div>
+        <div><label style="text-transform:none;font-size:11px;">BP (mmHg)</label><input type="text" id="a_bp" placeholder="128/76"></div>
+        <div>
+          <label style="text-transform:none;font-size:11px;">SpO₂ (%)</label>
+          <input type="hidden" id="a_spo2" value="99">
+          <div id="wc_a_spo2"></div>
+        </div>
+      </div>
+    </div>
+    <div class="fg"><label>Consent</label>
+      <div class="chips">
+        <label class="chip"><input type="checkbox" id="c1"> Verbal consent</label>
+        <label class="chip"><input type="checkbox" id="c2"> Written consent</label>
+        <label class="chip"><input type="checkbox" id="c3"> Capacity confirmed</label>
+        <label class="chip"><input type="checkbox" id="c4"> Risks explained</label>
+      </div>
+    </div>
+  </div>
+  <div class="nav">
+    <button class="btn-back" onclick="gotoStep(1)">← Back</button>
+    <button class="btn-nxt" onclick="startProc()">Start Procedure ▶</button>
+  </div>
+</div>
+
+<!-- ════════════ STEP 3: LIVE MONITOR ════════════ -->
+<div class="sc" id="s3">
+  <div class="ch">
+    <div class="ci">📊</div>
+    <div><h2>Live Monitoring</h2><p>Cockpit dials · drugs · timed observations</p></div>
+  </div>
+  <div class="cb">
+
+    <!-- STOPWATCH -->
+    <div class="sw-panel">
+      <div class="sw-top">
+        <div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="sw-elapsed" id="swEl">00:00</span>
+            <span class="sw-status paused" id="swSt">PAUSED</span>
+          </div>
+          <div class="sw-sublabel">Elapsed since procedure start</div>
+        </div>
+        <div class="sw-times">
+          <div class="sw-time-row"><span>Started</span><strong id="swStart">–</strong></div>
+          <div class="sw-time-row"><span>Stopped</span><strong id="swStop">–</strong></div>
+          <div class="sw-time-row" id="swDurR" style="display:none;"><span>Duration</span><strong id="swDur">–</strong></div>
+        </div>
+      </div>
+      <div class="sw-ctrls">
+        <button class="sw-btn sw-pa" id="swTogBtn" onclick="toggleSW()">▶ Resume</button>
+        <button class="sw-btn sw-st" onclick="stopSW()">■ Stop</button>
+        <button class="sw-btn sw-rs" onclick="resetSW()">↺ Reset</button>
+      </div>
+    </div>
+
+    <!-- OBS REMINDER -->
+    <div class="obs-bar" id="obsBar">
+      <div>
+        <div class="obs-lbl" id="obsLbl">Next observations in</div>
+        <div class="obs-cd" id="obsCd">1:00</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="obs-badge" id="obsBadge">OBS DUE</div>
+        <button class="ack-btn" id="obsAck" onclick="ackObs()">Acknowledge</button>
+      </div>
+    </div>
+
+    <!-- DRUG LOG -->
+    <div class="sec-ttl">Drug Administration</div>
+    <div class="drug-inp-row" style="margin-bottom:9px;">
+      <select id="d_drug">
+        <option value="">Select drug…</option>
+        <option>Midazolam</option><option>Fentanyl</option><option>Ketamine</option>
+        <option>Propofol</option><option>Morphine</option><option>Alfentanil</option>
+        <option>Dexmedetomidine</option><option>Nitrous oxide</option>
+        <option>Flumazenil</option><option>Naloxone</option><option>Atropine</option>
+        <option>Other (see notes)</option>
+      </select>
+      <input type="text" id="d_dose" placeholder="Dose" style="min-width:0;">
+      <select id="d_route" class="rt-s"><option>IV</option><option>IM</option><option>IN</option><option>PO</option><option>INH</option></select>
+      <button class="log-drug-btn" onclick="logDrug()">Log</button>
+    </div>
+    <div id="drugEntries"><div class="empty-msg" id="drugEmpty">No drugs logged yet</div></div>
+
+    <div class="sep"></div>
+
+    <!-- COCKPIT DIALS -->
+    <div class="sec-ttl">Record Observations</div>
+    <div class="dials-panel">
+      <div class="dials-grid" id="dialsGrid"></div>
+    </div>
+
+    <!-- BP -->
+    <div class="bp-row">
+      <label style="margin-bottom:6px;">Blood Pressure <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-l);">(mmHg)</span></label>
+      <div class="bp-inner">
+        <div>
+          <label style="text-transform:none;font-size:10px;color:var(--ink-l);">Systolic</label>
+          <input type="number" id="v_bps" placeholder="120" min="40" max="250" style="font-size:18px;font-weight:700;text-align:center;">
+        </div>
+        <div>
+          <label style="text-transform:none;font-size:10px;color:var(--ink-l);">Diastolic</label>
+          <input type="number" id="v_bpd" placeholder="80" min="20" max="150" style="font-size:18px;font-weight:700;text-align:center;">
+        </div>
+      </div>
+    </div>
+
+    <!-- AVPU -->
+    <div class="fg">
+      <label>AVPU / Consciousness</label>
+      <select id="v_gcs">
+        <option value="">Select…</option>
+        <option>A – Alert</option><option>V – Voice</option>
+        <option>P – Pain</option><option>U – Unresponsive</option>
+        <option>GCS 15</option><option>GCS 14</option><option>GCS 13</option>
+        <option>GCS 12</option><option>GCS &lt;12</option>
+      </select>
+    </div>
+
+    <button class="log-vital-btn" id="logVBtn" onclick="logVitals()">Log Observations</button>
+
+    <div style="margin-top:11px;overflow-x:auto;">
+      <table class="vt">
+        <thead><tr>
+          <th>Time</th><th>+Min</th><th>HR</th><th>BP</th><th>SpO₂</th><th>RR</th><th>ETCO₂</th><th>AVPU</th><th></th>
+        </tr></thead>
+        <tbody id="vtbody"><tr><td colspan="9" class="empty-msg">No observations yet</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="fg" style="margin-top:12px;"><label>Procedural Notes</label>
+      <textarea id="v_notes" placeholder="Events, interventions, concerns during procedure…"></textarea></div>
+  </div>
+  <div class="nav">
+    <button class="btn-back" onclick="gotoStep(2)">← Back</button>
+    <button class="btn-nxt" onclick="gotoStep(4)">Procedure Complete →</button>
+  </div>
+</div>
+
+<!-- ════════════ STEP 4: ALDRETE ════════════ -->
+<div class="sc" id="s4">
+  <div class="ch">
+    <div class="ci">✅</div>
+    <div><h2>Aldrete Score</h2><p>Post-procedure recovery assessment</p></div>
+  </div>
+  <div class="cb">
+    <div class="al-item" id="al1"><h4>1. Activity</h4><p>Ability to move extremities voluntarily or on command</p>
+      <div class="sbr"><button class="sb" onclick="setAl('ac',0,this)">0<span>None</span></button><button class="sb" onclick="setAl('ac',1,this)">1<span>2 limbs</span></button><button class="sb" onclick="setAl('ac',2,this)">2<span>4 limbs</span></button></div></div>
+    <div class="al-item" id="al2"><h4>2. Respiration</h4><p>Breathing effort and airway maintenance</p>
+      <div class="sbr"><button class="sb" onclick="setAl('re',0,this)">0<span>Apnoeic</span></button><button class="sb" onclick="setAl('re',1,this)">1<span>Shallow</span></button><button class="sb" onclick="setAl('re',2,this)">2<span>Deep / coughs</span></button></div></div>
+    <div class="al-item" id="al3"><h4>3. Circulation</h4><p>BP vs pre-sedation baseline</p>
+      <div class="sbr"><button class="sb" onclick="setAl('ci',0,this)">0<span>&gt;50% diff</span></button><button class="sb" onclick="setAl('ci',1,this)">1<span>20–50% diff</span></button><button class="sb" onclick="setAl('ci',2,this)">2<span>&lt;20% diff</span></button></div></div>
+    <div class="al-item" id="al4"><h4>4. Consciousness</h4><p>Level of awareness and orientation</p>
+      <div class="sbr"><button class="sb" onclick="setAl('co',0,this)">0<span>Not responding</span></button><button class="sb" onclick="setAl('co',1,this)">1<span>Arousable</span></button><button class="sb" onclick="setAl('co',2,this)">2<span>Fully awake</span></button></div></div>
+    <div class="al-item" id="al5"><h4>5. Oxygen Saturation</h4><p>SpO₂ on room air</p>
+      <div class="sbr"><button class="sb" onclick="setAl('sp',0,this)">0<span>&lt;90% + O₂</span></button><button class="sb" onclick="setAl('sp',1,this)">1<span>&lt;92% + O₂</span></button><button class="sb" onclick="setAl('sp',2,this)">2<span>≥92% RA</span></button></div></div>
+    <div class="al-total"><div><span class="big" id="alTot">–</span><span class="denom">/10</span></div>
+      <div style="font-size:10px;opacity:.45;margin-top:2px;">Aldrete Score</div>
+      <div class="verd" id="alVerd">Score all items to see verdict</div></div>
+    <div class="fg" style="margin-top:13px;"><label>Post-Procedure Notes / Complications</label>
+      <textarea id="a4_notes" placeholder="Complications, reversal agents, patient complaints…"></textarea></div>
+    <div class="fg"><label>Disposition</label>
+      <select id="a4_disp"><option value="">Select…</option>
+        <option>Discharged home</option><option>Admitted – Ward</option>
+        <option>Admitted – HDU</option><option>Admitted – ICU</option>
+        <option>Transferred to theatre</option><option>Observation continued</option>
+      </select>
+    </div>
+  </div>
+  <div class="nav">
+    <button class="btn-back" onclick="gotoStep(3)">← Back</button>
+    <button class="btn-nxt" onclick="genRecord()">Generate Record →</button>
+  </div>
+</div>
+
+<!-- ════════════ STEP 5: RECORD ════════════ -->
+<div class="sc" id="s5">
+  <div class="ch">
+    <div class="ci">📄</div>
+    <div><h2>Sedation Record</h2><p>Weston General Hospital EM</p></div>
+  </div>
+  <div class="cb">
+    <div class="epr-box">
+      <div class="epr-title">Clinical Summary — Copy to EPR</div>
+      <textarea class="epr-ta" id="eprText" readonly></textarea>
+      <button class="copy-btn" id="copyBtn" onclick="copyEPR()">📋 Copy to Clipboard</button>
+    </div>
+    <div id="recOut"></div>
+  </div>
+  <div class="nav">
+    <button class="btn-back" onclick="gotoStep(4)">← Back</button>
+    <div style="flex:1;display:flex;flex-direction:column;gap:7px;">
+      <button class="print-btn" onclick="window.print()">🖨️  Print / Save as PDF</button>
+      <button class="new-btn" onclick="newSess()">↺  New Session</button>
+    </div>
+  </div>
+</div>
+</div><!-- cc -->
+
+<script>
+// ═════════════ STATE ═════════════
+let curStep=1, asaSel=null;
+let alS={ac:null,re:null,ci:null,co:null,sp:null};
+let drugs=[], vitals=[];
+let swSec=0,swRun=false,swIval=null,swStartT=null,swStopT=null;
+let obsCd=60, obsDue=false;
+const dialVals={hr:80,spo2:98,rr:14,etco2:35};
+let repeatIval=null;
+
+// ═════════════ NAVIGATION ═════════════
+function gotoStep(n){
+  document.getElementById('s'+curStep).classList.remove('active');
+  document.getElementById('s'+n).classList.add('active');
+  for(let i=1;i<=5;i++){
+    const sp=document.getElementById('sp'+i);
+    sp.classList.remove('active','done');
+    const num=sp.querySelector('.sp-num');
+    if(i<n){sp.classList.add('done');num.textContent='✓';}
+    else if(i===n){sp.classList.add('active');num.textContent=i;}
+    else{num.textContent=i;}
+  }
+  curStep=n; window.scrollTo({top:0,behavior:'smooth'});
+  // Give the newly-visible step a frame to render, then initialise any pending wheels
+  requestAnimationFrame(applyWheelInits);
+}
+
+// ═════════════ ASA ═════════════
+function selASA(g,desc){
+  asaSel=g;
+  document.querySelectorAll('.asa-b').forEach(b=>b.classList.remove('sel'));
+  event.target.closest('.asa-b').classList.add('sel');
+  const d=document.getElementById('asaDesc');
+  d.textContent='ASA '+g+': '+desc; d.classList.add('vis');
+}
+
+// ═════════════ STOPWATCH ═════════════
+function fmtClock(d){return d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function fmtEl(s){const m=Math.floor(s/60),sc=s%60;return m===0?sc+'s':m+'m '+String(sc).padStart(2,'0')+'s';}
+
+function startSW(){
+  if(swRun)return;
+  if(!swStartT)swStartT=new Date();
+  swRun=true; swStopT=null;
+  document.getElementById('swStop').textContent='–';
+  document.getElementById('swDurR').style.display='none';
+  const st=document.getElementById('swSt'); st.textContent='RUNNING'; st.className='sw-status running';
+  document.getElementById('swTogBtn').textContent='⏸  Pause';
+  document.getElementById('hdrTimer').style.display='block';
+  swIval=setInterval(()=>{swSec++;updSW();},1000);
+}
+function pauseSW(){
+  if(!swRun)return; clearInterval(swIval); swRun=false;
+  const st=document.getElementById('swSt'); st.textContent='PAUSED'; st.className='sw-status paused';
+  document.getElementById('swTogBtn').textContent='▶  Resume';
+}
+function stopSW(){
+  pauseSW(); swStopT=new Date();
+  document.getElementById('swStop').textContent=fmtClock(swStopT);
+  const st=document.getElementById('swSt'); st.textContent='STOPPED'; st.className='sw-status stopped';
+  document.getElementById('swDurR').style.display='';
+  document.getElementById('swDur').textContent=fmtEl(swSec);
+}
+function toggleSW(){if(swRun)pauseSW();else startSW();}
+function resetSW(){
+  clearInterval(swIval); swRun=false; swSec=0; swStartT=null; swStopT=null;
+  document.getElementById('swEl').textContent='00:00';
+  document.getElementById('swStart').textContent='–'; document.getElementById('swStop').textContent='–';
+  document.getElementById('swDurR').style.display='none';
+  const st=document.getElementById('swSt'); st.textContent='PAUSED'; st.className='sw-status paused';
+  document.getElementById('swTogBtn').textContent='▶  Resume';
+  document.getElementById('hdrTimer').textContent='00:00';
+  resetObs();
+}
+function updSW(){
+  const m=String(Math.floor(swSec/60)).padStart(2,'0'),s=String(swSec%60).padStart(2,'0');
+  document.getElementById('swEl').textContent=m+':'+s;
+  document.getElementById('hdrTimer').textContent=m+':'+s;
+  if(swStartT)document.getElementById('swStart').textContent=fmtClock(swStartT);
+  tickObs();
+}
+
+// ═════════════ OBS REMINDER ═════════════
+function resetObs(){
+  obsCd=60; obsDue=false;
+  const bar=document.getElementById('obsBar');
+  bar.classList.remove('due');
+  document.getElementById('obsLbl').textContent='Next observations in';
+  updObsDisplay();
+}
+function tickObs(){
+  if(!swRun)return;
+  if(obsDue)return; // waiting for acknowledgement
+  obsCd--;
+  if(obsCd<=0){obsDue=true;obsCd=0;triggerObs();return;}
+  updObsDisplay();
+}
+function triggerObs(){
+  document.getElementById('obsBar').classList.add('due');
+  document.getElementById('obsLbl').textContent='Observations overdue!';
+  document.getElementById('obsCd').textContent='NOW';
+  if(navigator.vibrate)navigator.vibrate([500,150,500,150,500]);
+}
+function ackObs(){
+  if(navigator.vibrate)navigator.vibrate(0); // stop vibration
+  resetObs();
+}
+function updObsDisplay(){
+  if(obsDue)return;
+  document.getElementById('obsCd').textContent=Math.floor(obsCd/60)+':'+String(obsCd%60).padStart(2,'0');
+}
+function startProc(){if(!swRun&&swSec===0)startSW();resetObs();gotoStep(3);}
+
+// ═════════════ COCKPIT DIALS ═════════════
+const DDEFS=[
+  {id:'hr',   label:'Heart Rate', unit:'bpm',  min:30,  max:200, init:80,  color:'#4ade80'},
+  {id:'spo2', label:'SpO₂',      unit:'%',    min:70,  max:100, init:98,  color:'#38bdf8'},
+  {id:'rr',   label:'Resp Rate', unit:'/min', min:4,   max:40,  init:14,  color:'#fb923c'},
+  {id:'etco2',label:'ETCO₂',    unit:'mmHg', min:10,  max:80,  init:35,  color:'#a78bfa'},
+];
+const DIAL_START=-135, DIAL_SWEEP=270;
+
+function dialXY(deg,r,cx=40,cy=40){
+  const rad=(deg-90)*Math.PI/180;
+  return [+(cx+r*Math.cos(rad)).toFixed(2),+(cy+r*Math.sin(rad)).toFixed(2)];
+}
+function dialArc(s,e,r=30,cx=40,cy=40){
+  const [sx,sy]=dialXY(s,r,cx,cy);
+  const [ex,ey]=dialXY(e,r,cx,cy);
+  const span=((e-s)%360+360)%360;
+  if(span<0.5)return '';
+  return `M ${sx} ${sy} A ${r} ${r} 0 ${span>180?1:0} 1 ${ex} ${ey}`;
+}
+function updateDial(id){
+  const def=DDEFS.find(d=>d.id===id); if(!def)return;
+  const val=dialVals[id];
+  const pct=(val-def.min)/(def.max-def.min);
+  const fillEnd=DIAL_START+DIAL_SWEEP*pct;
+  document.getElementById('dbg_'+id).setAttribute('d',dialArc(DIAL_START,DIAL_START+DIAL_SWEEP));
+  document.getElementById('dfl_'+id).setAttribute('d',pct>0.005?dialArc(DIAL_START,fillEnd):'');
+  document.getElementById('dtx_'+id).textContent=val;
+}
+function changeDial(id,delta){
+  const def=DDEFS.find(d=>d.id===id);
+  dialVals[id]=Math.max(def.min,Math.min(def.max,dialVals[id]+delta));
+  updateDial(id);
+}
+function buildDial(def){
+  const card=document.createElement('div'); card.className='dial-card';
+  card.innerHTML=`
+    <div class="dial-lbl">${def.label}</div>
+    <svg class="dial-svg" viewBox="0 0 80 80" width="72" height="72">
+      <path id="dbg_${def.id}" stroke="rgba(255,255,255,0.10)" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path id="dfl_${def.id}" stroke="${def.color}" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <text id="dtx_${def.id}" x="40" y="47" text-anchor="middle"
+        font-family="'Inter',sans-serif" font-size="17" font-weight="800" fill="white"
+        font-variant-numeric="tabular-nums"></text>
+    </svg>
+    <div class="dial-unit">${def.unit}</div>
+    <div class="dial-btns">
+      <button class="dial-btn" id="dbm_${def.id}">−</button>
+      <button class="dial-btn" id="dbp_${def.id}">+</button>
+    </div>`;
+  document.getElementById('dialsGrid').appendChild(card);
+  dialVals[def.id]=def.init;
+  updateDial(def.id);
+
+  // Pointer drag on SVG — drag UP to increase, drag DOWN to decrease
+  // Uses Pointer Events API so it works for both mouse (desktop) and finger (mobile)
+  const svg=card.querySelector('.dial-svg');
+  let ptrActive=false,py0=0,v0=def.init;
+  svg.addEventListener('pointerdown',e=>{
+    ptrActive=true; py0=e.clientY; v0=dialVals[def.id];
+    svg.setPointerCapture(e.pointerId); // keep receiving events even outside SVG
+    e.preventDefault();
+  });
+  svg.addEventListener('pointermove',e=>{
+    if(!ptrActive)return;
+    const delta=Math.round((py0-e.clientY)*(def.max-def.min)/120);
+    dialVals[def.id]=Math.max(def.min,Math.min(def.max,v0+delta));
+    updateDial(def.id);
+  });
+  svg.addEventListener('pointerup',  ()=>{ptrActive=false;});
+  svg.addEventListener('pointercancel',()=>{ptrActive=false;});
+
+  // Tap-and-hold +/- buttons
+  const bm=card.querySelector('#dbm_'+def.id);
+  const bp=card.querySelector('#dbp_'+def.id);
+  function startRep(d){changeDial(def.id,d);clearInterval(repeatIval);repeatIval=setInterval(()=>changeDial(def.id,d),100);}
+  function stopRep(){clearInterval(repeatIval);}
+  bm.addEventListener('touchstart',()=>startRep(-1),{passive:true});
+  bm.addEventListener('touchend',stopRep);
+  bm.addEventListener('mousedown',()=>startRep(-1));
+  bm.addEventListener('mouseup',stopRep);
+  bm.addEventListener('mouseleave',stopRep);
+  bp.addEventListener('touchstart',()=>startRep(1),{passive:true});
+  bp.addEventListener('touchend',stopRep);
+  bp.addEventListener('mousedown',()=>startRep(1));
+  bp.addEventListener('mouseup',stopRep);
+  bp.addEventListener('mouseleave',stopRep);
+}
+DDEFS.forEach(buildDial);
+
+// ═════════════ INLINE WHEEL PICKERS (Assess + Patient) ═════════════
+function rng(a,b){const r=[];for(let i=a;i<=b;i++)r.push(i);return r;}
+
+// Registry: re-apply scroll positions when a hidden step becomes visible
+const wheelInits=[];
+function applyWheelInits(){
+  wheelInits.forEach(fn=>fn());
+}
+
+function buildInlineWheel(def,containerId){
+  const container=document.getElementById(containerId);
+  if(!container)return;
+  const div=document.createElement('div'); div.className='wheel-card wheel-sm';
+  div.innerHTML=`
+    <div class="wheel-outer">
+      <div class="wheel-hl"></div>
+      <div class="wheel-scroll" id="ws_${def.id}">
+        <div class="wheel-pad"></div>
+        ${def.values.map(v=>`<div class="wheel-item" data-val="${v}">${v}</div>`).join('')}
+        <div class="wheel-pad"></div>
+      </div>
+    </div>
+    <div class="wc-unit">${def.unit}</div>`;
+  container.appendChild(div);
+
+  const scroll=div.querySelector('.wheel-scroll');
+  const IH=40;
+  const targetTop=def.values.indexOf(def.init)*IH;
+  let inited=false;
+
+  // Called every time a step is shown; only sets position once (first time visible)
+  function initScroll(){
+    if(inited)return;
+    if(scroll.offsetHeight>0){
+      scroll.scrollTop=targetTop;
+      updWheelItems(scroll);
+      inited=true;
+    }
+  }
+  wheelInits.push(initScroll);
+  requestAnimationFrame(initScroll); // catches step 1 wheels (already visible)
+
+  let t;
+  scroll.addEventListener('scroll',()=>{
+    updWheelItems(scroll);
+    clearTimeout(t);
+    t=setTimeout(()=>{
+      const idx=Math.max(0,Math.min(def.values.length-1,Math.round(scroll.scrollTop/IH)));
+      scroll.scrollTo({top:idx*IH,behavior:'smooth'});
+      const val=def.values[idx];
+      const inp=document.getElementById(def.id);
+      if(inp)inp.value=val;
+    },80);
+  },{passive:true});
+}
+function updWheelItems(scroll){
+  const centerH=scroll.parentElement.offsetHeight/2;
+  scroll.querySelectorAll('.wheel-item').forEach(item=>{
+    const dist=Math.abs(item.offsetTop-scroll.scrollTop+20-centerH);
+    item.classList.remove('sel','near','dim');
+    if(dist<12)item.classList.add('sel');
+    else if(dist<40)item.classList.add('near');
+    else item.classList.add('dim');
+  });
+}
+
+buildInlineWheel({id:'a_hr',  unit:'bpm', values:rng(30,200), init:60},'wc_a_hr');
+buildInlineWheel({id:'a_spo2',unit:'%',   values:rng(70,100), init:99},'wc_a_spo2');
+buildInlineWheel({id:'p_wt',  unit:'kg',  values:rng(10,250), init:70},'wc_p_wt');
+
+// ═════════════ DRUG LOG ═════════════
+function logDrug(){
+  const drug=document.getElementById('d_drug').value;
+  const dose=document.getElementById('d_dose').value;
+  const route=document.getElementById('d_route').value;
+  if(!drug||!dose){alert('Select a drug and enter a dose.');return;}
+  const now=new Date();
+  drugs.push({drug,dose,route,time:fmtClock(now),elapsed:fmtEl(swSec),id:Date.now()});
+  renderDrugs();
+  document.getElementById('d_drug').value='';document.getElementById('d_dose').value='';
+}
+function renderDrugs(){
+  const c=document.getElementById('drugEntries');
+  const emp=document.getElementById('drugEmpty');
+  c.querySelectorAll('.de').forEach(e=>e.remove());
+  if(!drugs.length){emp.style.display='block';return;}
+  emp.style.display='none';
+  drugs.forEach(d=>{
+    const div=document.createElement('div');div.className='de';
+    div.innerHTML=`<span class="de-time">${d.time}<br><span style="font-size:9px;color:var(--forest-l);">+${d.elapsed}</span></span>
+      <span class="de-name">${d.drug}</span>
+      <span class="de-dose">${d.dose} <span style="color:var(--ink-l)">${d.route}</span></span>
+      <span class="de-del" onclick="delDrug(${d.id})">✕</span>`;
+    c.appendChild(div);
+  });
+}
+function delDrug(id){drugs=drugs.filter(d=>d.id!==id);renderDrugs();}
+
+// ═════════════ VITALS LOG ═════════════
+function logVitals(){
+  const hr=dialVals.hr,spo2=dialVals.spo2,rr=dialVals.rr,etco2=dialVals.etco2;
+  const bps=document.getElementById('v_bps').value;
+  const bpd=document.getElementById('v_bpd').value;
+  const bp=bps&&bpd?bps+'/'+bpd:(bps||bpd||'–');
+  const gcs=document.getElementById('v_gcs').value;
+  vitals.push({time:fmtClock(new Date()),elapsed:fmtEl(swSec),hr,bp,spo2,rr,etco2,gcs,id:Date.now()});
+  renderVitals(); resetObs();
+  const btn=document.getElementById('logVBtn');
+  btn.style.background='var(--ok)';btn.textContent='✓ Logged';
+  setTimeout(()=>{btn.style.background='';btn.textContent='Log Observations';},1600);
+}
+function renderVitals(){
+  const tb=document.getElementById('vtbody');
+  if(!vitals.length){tb.innerHTML='<tr><td colspan="9" class="empty-msg">No observations yet</td></tr>';return;}
+  tb.innerHTML='';
+  vitals.forEach(v=>{
+    const s92=parseInt(v.spo2)<92?'style="color:var(--danger);font-weight:700;"':'';
+    const hh=(parseInt(v.hr)>100||parseInt(v.hr)<50)?'style="color:var(--warn);font-weight:700;"':'';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="font-size:10px;font-variant-numeric:tabular-nums;">${v.time}</td>
+      <td style="color:var(--ok);font-weight:600;font-size:10px;">+${v.elapsed}</td>
+      <td ${hh}>${v.hr}</td><td>${v.bp}</td><td ${s92}>${v.spo2}%</td>
+      <td>${v.rr}</td><td>${v.etco2}</td><td style="font-size:10px;">${v.gcs||'–'}</td>
+      <td style="cursor:pointer;color:var(--ink-l);" onclick="delVital(${v.id})">✕</td>`;
+    tb.appendChild(tr);
+  });
+}
+function delVital(id){vitals=vitals.filter(v=>v.id!==id);renderVitals();}
+
+// ═════════════ ALDRETE ═════════════
+function setAl(domain,score,btn){
+  alS[domain]=score;
+  btn.closest('.sbr').querySelectorAll('.sb').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  btn.closest('.al-item').classList.add('sc2');
+  const vals=Object.values(alS),scored=vals.filter(v=>v!==null);
+  const total=scored.reduce((a,b)=>a+b,0);
+  document.getElementById('alTot').textContent=scored.length<5?total+'…':total;
+  document.getElementById('alVerd').textContent=scored.length<5?scored.length+'/5 scored':
+    total>=9?'✓  Fit for discharge':total>=7?'⚠  Continued observation':'⚑  Medical review required';
+}
+
+// ═════════════ GENERATE RECORD ═════════════
+function genRecord(){
+  const alVals=Object.values(alS);
+  const allScored=alVals.filter(v=>v!==null).length===5;
+  const alTotal=allScored?alVals.reduce((a,b)=>a+b,0):'Incomplete';
+  const alVerdict=typeof alTotal==='number'
+    ?(alTotal>=9?'Fit for discharge':alTotal>=7?'Continued observation':'Medical review required'):'–';
+
+  const airArr=[]; document.querySelectorAll('#airChips input:checked').forEach(c=>airArr.push(c.value));
+  const cons=[]; ['c1','c2','c3','c4'].forEach((id,i)=>{
+    if(document.getElementById(id)?.checked)cons.push(['verbal','written','capacity confirmed','risks explained'][i]);
+  });
+
+  const drugRows=drugs.length
+    ?drugs.map(d=>`<li>⏱ ${d.time} (+${d.elapsed}) — <strong>${d.drug}</strong> ${d.dose} ${d.route}</li>`).join('')
+    :'<li>None documented</li>';
+
+  let vRows='';
+  vitals.forEach(v=>{vRows+=`<tr><td>${v.time}</td><td>+${v.elapsed}</td><td>${v.hr}</td><td>${v.bp}</td><td>${v.spo2}%</td><td>${v.rr}</td><td>${v.etco2}</td><td>${v.gcs||'–'}</td></tr>`;});
+
+  const durStr=swStopT
+    ?`Start: ${fmtClock(swStartT)} · Stop: ${fmtClock(swStopT)} · Duration: ${fmtEl(swSec)}`
+    :`Started: ${swStartT?fmtClock(swStartT):'–'} · Elapsed: ${fmtEl(swSec)}`;
+
+  // EPR paragraph
+  const proc=g('p_proc')||'the stated procedure';
+  const doc=g('p_doc')||'the clinician';
+  const loc=g('p_loc');
+  const dt=g('p_dt')?new Date(g('p_dt')).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'}):'the documented date';
+  const wt=g('p_wt')?`, weight ${g('p_wt')} kg`:'';
+  const allerg=g('p_allerg')||'NKDA';
+  const asa=asaSel?`ASA grade ${asaSel}`:'ASA grade not documented';
+  const consStr=cons.length?cons.join(', '):'consent documented';
+  const drugSummary=drugs.length?drugs.map(d=>`${d.drug} ${d.dose} ${d.route}`).join('; '):'no drugs documented';
+  const nObs=vitals.length;
+  const lowSpo2=vitals.filter(v=>parseInt(v.spo2)<92);
+  const abnHR=vitals.filter(v=>parseInt(v.hr)>100||parseInt(v.hr)<50);
+  let vitConcerns='';
+  if(lowSpo2.length)vitConcerns+=` SpO₂ fell below 92% on ${lowSpo2.length} occasion(s).`;
+  if(abnHR.length)vitConcerns+=` Heart rate was outside normal limits on ${abnHR.length} occasion(s).`;
+  const disp=g('a4_disp')||'not yet documented';
+  const postNotes=g('a4_notes')?` ${g('a4_notes')}.`:'';
+  const durNote=swStopT?`Total procedure duration: ${fmtEl(swSec)}.`:'';
+
+  const eprText=
+`PROCEDURAL SEDATION — Weston General Hospital Emergency Medicine
+
+The patient${wt} underwent ${proc} under procedural sedation performed by ${doc} in ${loc} on ${dt}. Allergies: ${allerg}. ${asa}. Consent: ${consStr}. Fasting: solids ${g('a_sol')||'not documented'}, fluids ${g('a_fld')||'not documented'}. Baseline: HR ${g('a_hr')||'–'} bpm, BP ${g('a_bp')||'–'}, SpO₂ ${g('a_spo2')||'–'}%.
+
+Drugs administered: ${drugSummary}. ${nObs} set${nObs!==1?'s':''} of intra-procedural observations were recorded.${vitConcerns} ${durNote}
+
+Post-procedure Aldrete score: ${alTotal}/10 — ${alVerdict}.${postNotes} Disposition: ${disp}.
+
+Documented by: ${doc} | ${new Date().toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'})} | Weston General Hospital Emergency Medicine`;
+
+  document.getElementById('eprText').value=eprText;
+
+  // Structured record HTML
+  document.getElementById('recOut').innerHTML=`
+    <div style="text-align:center;padding:8px 0 14px;">
+      <div style="font-size:9px;color:var(--ink-l);font-weight:600;letter-spacing:.5px;text-transform:uppercase;">
+        Procedural Sedation Record · Weston General Hospital EM</div>
+      <div style="font-family:var(--serif);font-size:20px;color:var(--forest);margin-top:6px;">
+        ${g('p_proc')||'Procedural Sedation'}</div>
+      <div style="font-size:10px;color:var(--ink-l);margin-top:4px;">${durStr}</div>
+    </div>
+
+    ${recSection('PATIENT & PROCEDURE',`<div class="rec-row">
+      <div class="rec-field"><strong>Procedure:</strong><br>${g('p_proc')||'–'}</div>
+      <div class="rec-field"><strong>Date/Time:</strong><br>${g('p_dt')||'–'}</div>
+      <div class="rec-field"><strong>Clinician:</strong><br>${g('p_doc')||'–'}</div>
+      <div class="rec-field"><strong>Location:</strong><br>${g('p_loc')}</div>
+      <div class="rec-field"><strong>Weight:</strong><br>${g('p_wt')||'–'} kg</div>
+      <div class="rec-field"><strong>Allergies:</strong><br>${g('p_allerg')||'–'}</div>
+    </div>`)}
+
+    ${recSection('PRE-SEDATION ASSESSMENT',`<div class="rec-row">
+      <div class="rec-field"><strong>ASA:</strong><br>${asaSel?'ASA '+asaSel:'–'}</div>
+      <div class="rec-field"><strong>Mallampati:</strong><br>${g('a_mall')||'–'}</div>
+      <div class="rec-field"><strong>Mouth opening:</strong><br>${g('a_mouth')||'–'}</div>
+      <div class="rec-field"><strong>IV Access:</strong><br>${g('a_iv')} ${g('a_ivsit')?'('+g('a_ivsit')+')':''}</div>
+      <div class="rec-field"><strong>Fasting – solids:</strong><br>${g('a_sol')||'–'}</div>
+      <div class="rec-field"><strong>Fasting – fluids:</strong><br>${g('a_fld')||'–'}</div>
+    </div>
+    ${airArr.length?`<div style="margin-top:7px;font-size:12px;"><strong>Airway concerns:</strong> ${airArr.join(', ')}</div>`:''}
+    ${cons.length?`<div style="margin-top:5px;font-size:12px;"><strong>Consent:</strong> ${cons.join(', ')}</div>`:''}
+    <div style="margin-top:6px;font-size:12px;"><strong>Baseline:</strong> HR ${g('a_hr')||'–'} bpm · BP ${g('a_bp')||'–'} · SpO₂ ${g('a_spo2')||'–'}%</div>
+    ${g('a_hx')?`<div style="margin-top:5px;font-size:12px;"><strong>PMHx:</strong> ${g('a_hx')}</div>`:''}`)}
+
+    ${recSection('DRUG ADMINISTRATION',`<ul class="rec-drugs">${drugRows}</ul>`)}
+
+    ${recSection('VITAL SIGNS',vitals.length?`<div style="overflow-x:auto;"><table class="vt" style="font-size:11px;">
+      <thead><tr><th>Time</th><th>Elapsed</th><th>HR</th><th>BP</th><th>SpO₂</th><th>RR</th><th>ETCO₂</th><th>AVPU</th></tr></thead>
+      <tbody>${vRows}</tbody></table></div>
+      ${g('v_notes')?`<div style="margin-top:7px;font-size:12px;"><strong>Notes:</strong> ${g('v_notes')}</div>`:''}`
+      :'<div style="color:var(--ink-l);font-size:12px;">No observations recorded</div>')}
+
+    ${recSection('ALDRETE SCORE & RECOVERY',`<div class="rec-row">
+      <div><strong>Activity:</strong> ${alS.ac??'–'}/2</div>
+      <div><strong>Respiration:</strong> ${alS.re??'–'}/2</div>
+      <div><strong>Circulation:</strong> ${alS.ci??'–'}/2</div>
+      <div><strong>Consciousness:</strong> ${alS.co??'–'}/2</div>
+      <div><strong>SpO₂:</strong> ${alS.sp??'–'}/2</div>
+    </div>
+    <div style="margin-top:9px;padding:10px 12px;border-radius:9px;background:${typeof alTotal==='number'&&alTotal>=9?'var(--okl)':typeof alTotal==='number'&&alTotal>=7?'var(--warnl)':'var(--dangerl)'};">
+      <strong>Aldrete Total: ${alTotal}/10</strong> — ${alVerdict}
+    </div>
+    ${g('a4_notes')?`<div style="margin-top:6px;font-size:12px;"><strong>Post-procedure notes:</strong> ${g('a4_notes')}</div>`:''}
+    ${g('a4_disp')?`<div style="margin-top:5px;font-size:12px;"><strong>Disposition:</strong> ${g('a4_disp')}</div>`:''}`)}
+
+    <div style="text-align:center;padding:8px 0;color:var(--ink-l);font-size:9px;letter-spacing:.3px;">
+      Generated ${new Date().toLocaleString('en-GB')} · Weston General Hospital Emergency Medicine
+    </div>`;
+
+  gotoStep(5);
+}
+
+function recSection(title,body){
+  return `<div class="rec-card"><div class="rec-head">${title}</div><div class="rec-body">${body}</div></div>`;
+}
+
+function g(id){const el=document.getElementById(id);return el?el.value.trim():'';}
+
+function copyEPR(){
+  const ta=document.getElementById('eprText'); ta.select();
+  try{document.execCommand('copy');}catch(e){navigator.clipboard&&navigator.clipboard.writeText(ta.value);}
+  const btn=document.getElementById('copyBtn');
+  btn.textContent='✅  Copied to clipboard'; btn.classList.add('done');
+  setTimeout(()=>{btn.textContent='📋  Copy to Clipboard';btn.classList.remove('done');},2500);
+}
+
+function newSess(){if(confirm('Start a new session? All data will be cleared.'))location.reload();}
+
+// Chip toggle
+document.querySelectorAll('.chip').forEach(chip=>{
+  chip.addEventListener('click',function(){
+    const cb=this.querySelector('input');cb.checked=!cb.checked;
+    this.classList.toggle('on',cb.checked);
+  });
+});
+
+// Pre-fill datetime
+(function(){const now=new Date();
+  document.getElementById('p_dt').value=new Date(now-now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+})();
+</script>
+</body>
+</html>
